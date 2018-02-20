@@ -1,0 +1,7 @@
+.DS_Store
+cmd/blast/blast
+cmd/**/*.bin
+*.out
+.idea/workspace.xml
+*.go~
+*.exe
