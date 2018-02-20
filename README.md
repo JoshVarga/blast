@@ -15,6 +15,7 @@ Based on blast.c in ZLIB written by Mark Adler
 
 ### Example
 
+```
 func ExampleDecompress() {
 	fileIn, err := os.Open("in.bin")
     ...
@@ -25,7 +26,7 @@ func ExampleDecompress() {
 	err = ioutil.WriteFile("out.bin", decoded, 0777)
 	fileIn.Close()
 }
-
+```
 ### License
 
 Copyright (c) 2018 Josh Varga
