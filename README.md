@@ -30,7 +30,8 @@ func ExampleDecompress() {
 ### License
 
 Copyright (c) 2018 Josh Varga
-Original C version: Copyright (C) 2003, 2012, 2013 Mark Adler
+
+Original C version: Copyright (C) 2003, 2012, 2013 Mark Adler,
 version 1.3, 24 Aug 2013
 
 This software is provided 'as-is', without any express or implied
