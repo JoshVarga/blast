@@ -1,5 +1,6 @@
 .DS_Store
-cmd/blast/blast
+cmd/explode/explode
+cmd/implode/implode
 cmd/**/*.bin
 *.out
 .idea/workspace.xml
