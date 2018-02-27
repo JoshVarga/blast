@@ -22,6 +22,7 @@ https://github.com/ladislav-zezula/StormLib/blob/master/src/pklib/implode.c
 
 ### Example
 
+```
 func ExampleNewWriter() {
 	var b bytes.Buffer
 	w := blast.NewWriter(&b, blast.Binary, blast.DictionarySize1024)
@@ -42,12 +43,13 @@ func ExampleNewReader() {
 	// Output: AIAIAIAIAIAIA
 	r.Close()
 }
-
+```
 ### License
 
 Copyright (c) 2018 Josh Varga
+
 Explode:
-Original C version: Copyright (C) 2003, 2012, 2013 Mark Adler
+Original C version: Copyright (C) 2003, 2012, 2013 Mark Adler,
 version 1.3, 24 Aug 2013
 
 Implode:
