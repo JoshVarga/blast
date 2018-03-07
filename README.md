@@ -1,4 +1,8 @@
-# blast
+# blast [![Go Documentation](http://img.shields.io/badge/go-documentation-blue.svg?style=flat-square)][godocs] [![Travis](https://img.shields.io/travis/JoshVarga/blast.svg?style=flat-square)][travis] 
+====
+
+[godocs]: http://godoc.org/github.com/JoshVarga/blast
+[travis]: https://travis-ci.org/JoshVarga/blast
 
 Golang library for both compressing and decompressing data in the PKWare Data Compression Library (DCL) compressed format,
 otherwise known as "explode" and "implode" which differ from PKZIP.
