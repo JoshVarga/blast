@@ -1,6 +1,4 @@
 # blast [![Go Documentation](http://img.shields.io/badge/go-documentation-blue.svg?style=flat-square)][godocs] [![Travis](https://img.shields.io/travis/JoshVarga/blast.svg?style=flat-square)][travis] 
-====
-
 [godocs]: http://godoc.org/github.com/JoshVarga/blast
 [travis]: https://travis-ci.org/JoshVarga/blast
 
