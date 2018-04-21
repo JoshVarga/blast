@@ -1,12 +1,12 @@
 package main
 
 import (
+	"bytes"
 	"flag"
 	"github.com/JoshVarga/blast"
 	"io/ioutil"
 	"log"
 	"os"
-	"bytes"
 )
 
 func main() {

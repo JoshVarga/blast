@@ -2,8 +2,8 @@ package blast
 
 import (
 	"bytes"
-	"io"
 	"errors"
+	"io"
 )
 
 /*
@@ -37,7 +37,7 @@ const (
 	// Binary represents the Binary compression mode
 	Binary = 0
 	// ASCII represents the ASCII compression mode
-	ASCII  = 1
+	ASCII = 1
 
 	// DictionarySize1024 represents a dictiony of size 1024 is used
 	DictionarySize1024 = 1024
@@ -48,7 +48,7 @@ const (
 )
 
 type tCmpStruct struct {
-	distance    uint         // 0000: Backward distance of the currently found repetition, decreased by 1
+	distance   uint          // 0000: Backward distance of the currently found repetition, decreased by 1
 	outBytes   uint          // 0004: # bytes available in outBuff
 	outBits    uint          // 0008: # of bits available in the last out byte
 	dsizeBits  uint          // 000C: Number of bits needed for dictionary size. 4 = 0x400, 5 = 0x800, 6 = 0x1000
@@ -206,7 +206,7 @@ func sortBuffer(pWork *tCmpStruct, bufferBegin uint, bufferEnd uint) {
 	//  offs 0x000: Number of occurrences of PAIR_HASH 0 or lower
 	//  offs 0x001: Number of occurrences of PAIR_HASH 1 or lower
 	//  ...
-	//  offs 0x8F7: Number of occurences of PAIR_HASH 0x8F7 or lower
+	//  offs 0x8F7: Number of occurrences of PAIR_HASH 0x8F7 or lower
 	for phashToIndex = 0; phashToIndex < len(pWork.phashToIndex); phashToIndex++ {
 		totalSum = totalSum + pWork.phashToIndex[phashToIndex]
 		pWork.phashToIndex[phashToIndex] = totalSum
@@ -275,25 +275,25 @@ func outputBits(pWork *tCmpStruct, nBits uint16, bitBuff uint) {
 }
 
 // This function searches for a repetition
-// (a previous occurence of the current byte sequence)
+// (a previous occurrence of the current byte sequence)
 // Returns length of the repetition, and stores the backward distance
 // to pWork structure.
 func findRep(pWork *tCmpStruct, workBuffOffset uint) uint {
 	var (
-		phashToIndex     uint // Pointer into pWork.phashToIndex table
-		phashOffs        uint // Pointer to the table containing offsets of each PAIR_HASH
-		repetitionLimit  int  // An eventual repetition must be at position below this pointer
-		prevRepetition uint // Pointer to the previous occurrence of the current PAIR_HASH
-		prevRepEnd     uint // End of the previous repetition
-		inputDataPtr   uint
-		phashOffsIndex uint                  // Index to the table with PAIR_HASH positions
-		minPhashOffs   uint16                // The lowest allowed hash offset
-		offsInRep      uint16                // Offset within found repetition
-		equalByteCount uint                  // Number of bytes that are equal to the previous occurence
-		repLength                        = uint(1) // Length of the found repetition
-		repLength2     uint                  // Secondary repetition
-		preLastByte    uint8                 // Last but one byte from a repetition
-		diVal          uint16
+		phashToIndex    uint // Pointer into pWork.phashToIndex table
+		phashOffs       uint // Pointer to the table containing offsets of each PAIR_HASH
+		repetitionLimit int  // An eventual repetition must be at position below this pointer
+		prevRepetition  uint // Pointer to the previous occurrence of the current PAIR_HASH
+		prevRepEnd      uint // End of the previous repetition
+		inputDataPtr    uint
+		phashOffsIndex  uint      // Index to the table with PAIR_HASH positions
+		minPhashOffs    uint16    // The lowest allowed hash offset
+		offsInRep       uint16    // Offset within found repetition
+		equalByteCount  uint      // Number of bytes that are equal to the previous occurrence
+		repLength       = uint(1) // Length of the found repetition
+		repLength2      uint      // Secondary repetition
+		preLastByte     uint8     // Last but one byte from a repetition
+		diVal           uint16
 	)
 	// Calculate the previous position of the PAIR_HASH
 	phashToIndex = uint(getBytePairHash(pWork.workBuff, workBuffOffset))
@@ -639,7 +639,7 @@ func writeCmpData(pWork *tCmpStruct) {
 				// Try to find better repetition 1 byte later.
 				// Example: "ARROCKFORT" "AROCKFORT"
 				// When "input_data" points to the second string, findRep
-				// returns the occurence of "AR". But there is longer repetition "ROCKFORT",
+				// returns the occurrence of "AR". But there is longer repetition "ROCKFORT",
 				// beginning 1 byte after.
 				saveRepLength = repLength
 				saveDistance = pWork.distance

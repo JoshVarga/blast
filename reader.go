@@ -338,7 +338,6 @@ func decompress(s *state) error {
 	var dist uint      // distance for copy
 
 	var copy int                                                         // copy counter
-	virgin := true                                                       // build tables once
 	literalCode := huffman{make([]int16, maxBits+1), make([]int16, 256)} // length code
 	lengthCode := huffman{make([]int16, maxBits+1), make([]int16, 16)}   // length code
 	distanceCode := huffman{make([]int16, maxBits+1), make([]int16, 64)} // distance code
@@ -360,12 +359,9 @@ func decompress(s *state) error {
 		0, 0, 0, 0, 0, 0, 0, 0, 1, 2, 3, 4, 5, 6, 7, 8}
 
 	// set up decoding tables (once--might not be thread-safe)
-	if virgin {
-		construct(&literalCode, literalBitLength)
-		construct(&lengthCode, lengthBitLength)
-		construct(&distanceCode, distanceBitLength)
-		virgin = false
-	}
+	construct(&literalCode, literalBitLength)
+	construct(&lengthCode, lengthBitLength)
+	construct(&distanceCode, distanceBitLength)
 	var err error
 	// read header
 	lit, err = bits(s, 8)
