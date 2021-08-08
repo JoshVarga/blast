@@ -3,17 +3,26 @@ package blast_test
 import (
 	"bytes"
 	"fmt"
-	"github.com/JoshVarga/blast"
 	"io"
 	"os"
+
+	"github.com/JoshVarga/blast"
 )
 
 func ExampleNewWriter() {
 	var b bytes.Buffer
 	w := blast.NewWriter(&b, blast.Binary, blast.DictionarySize1024)
-	w.Write([]byte("AIAIAIAIAIAIA"))
-	w.Close()
-	fmt.Println(b.Bytes())
+	count, err := w.Write([]byte("AIAIAIAIAIAIA"))
+	if err != nil {
+		fmt.Print("failed to write")
+	}
+	if count != 13 {
+		fmt.Printf("incorrect number of bytes written: %v", count)
+	}
+	err = w.Close()
+	fmt.Print(b.Bytes())
+	if err != nil {
+	}
 	// Output: [0 4 130 36 37 143 128 127]
 }
 
@@ -24,7 +33,11 @@ func ExampleNewReader() {
 	if err != nil {
 		panic(err)
 	}
-	io.Copy(os.Stdout, r)
+	_, err = io.Copy(os.Stdout, r)
 	// Output: AIAIAIAIAIAIA
-	r.Close()
+	if err != nil {
+	}
+	err = r.Close()
+	if err != nil {
+	}
 }

@@ -372,16 +372,28 @@ func decompress(s *state) error {
 		return ErrHeader
 	}
 	dict, err = bits(s, 8)
+	if err != nil {
+		return err
+	}
 	if dict < 4 || dict > 6 {
 		return ErrDictionary
 	}
 	// decode literals and length/distance pairs
 	for {
 		bitVal, err := bits(s, 1)
+		if err != nil {
+			return err
+		}
 		if bitVal != 0 {
 			// get length
 			symbol, err = decode(s, &lengthCode)
+			if err != nil {
+				return err
+			}
 			bitVal, err = bits(s, uint(extra[symbol]))
+			if err != nil {
+				return err
+			}
 			copyLength = int(base[symbol]) + bitVal
 			if copyLength == 519 {
 				break // end code
@@ -394,9 +406,15 @@ func decompress(s *state) error {
 			}
 			var decodeVal int16
 			decodeVal, err = decode(s, &distanceCode)
+			if err != nil {
+				return err
+			}
 
 			dist = uint(decodeVal) << uint(symbol)
 			bitVal, err = bits(s, uint(symbol))
+			if err != nil {
+				return err
+			}
 			dist += uint(bitVal)
 			dist++
 			if s.first && dist > s.next {
@@ -435,6 +453,9 @@ func decompress(s *state) error {
 			// get literal and write it
 			if lit != 0 {
 				symbol, err = decode(s, &literalCode)
+				if err != nil {
+					return err
+				}
 			} else {
 				var bitsVal int
 				bitsVal, err = bits(s, 8)
@@ -484,7 +505,10 @@ func blast(r io.Reader, w io.Writer, left *uint) error {
 	}
 	// write any leftover output and update the error code if needed
 	if s.next != 0 {
-		s.writer.Write(s.out[:s.next])
+		_, err = s.writer.Write(s.out[:s.next])
+		if err != nil {
+			return err
+		}
 	}
 	return nil
 }

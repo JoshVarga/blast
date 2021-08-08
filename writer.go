@@ -59,18 +59,18 @@ type tCmpStruct struct {
 	distCodes  []uint8       // 005C: Distance codes
 	nChBits    [0x306]uint8  // 009C: Table of literal bit lengths to be put to the output stream
 	nChCodes   [0x306]uint16 // 03A2: Table of literal codes to be put to the output stream
-	offs09AE   uint16        // 09AE:
+	//offs09AE   uint16        // 09AE:
 
 	//param     *uint8    // 09B0: User parameter
 	readBuf  io.Reader // 9B4
 	writeBuf io.Writer // 9B8
 
-	offs09BC        [0x204]uint16 // 09BC:
-	offs0DC4        uint32        // 0DC4:
-	phashToIndex    [0x900]uint16 // 0DC8: Array of indexes (one for each PAIR_HASH) to the "pair_hash_offsets" table
-	phashToIndexEnd uint16        // 1FC8: End marker for "phashToIndex" table
-	outBuff         []uint8       // 1FCA: Compressed data
-	workBuff        []uint8       // 27CC: Work buffer
+	offs09BC [0x204]uint16 // 09BC:
+	// offs0DC4     uint32        // 0DC4: unknown use
+	phashToIndex [0x900]uint16 // 0DC8: Array of indexes (one for each PAIR_HASH) to the "pair_hash_offsets" table
+	//phashToIndexEnd uint16        // 1FC8: End marker for "phashToIndex" table
+	outBuff  []uint8 // 1FCA: Compressed data
+	workBuff []uint8 // 27CC: Work buffer
 	//  + DICT_OFFSET  => Dictionary
 	//  + UNCMP_OFFSET => Uncompressed data
 	phashOffs [0x2204]uint16 // 49D0: Table of offsets for each PAIR_HASH
@@ -223,11 +223,13 @@ func sortBuffer(pWork *tCmpStruct, bufferBegin uint, bufferEnd uint) {
 	}
 }
 
-func flushBuf(pWork *tCmpStruct) {
+func flushBuf(pWork *tCmpStruct) error {
 	var saveCh1 uint8
 	var saveCh2 uint8
-	pWork.writeBuf.Write(pWork.outBuff[0:0x800])
-
+	_, err := pWork.writeBuf.Write(pWork.outBuff[0:0x800])
+	if err != nil {
+		return err
+	}
 	saveCh1 = pWork.outBuff[0x800]
 	saveCh2 = pWork.outBuff[pWork.outBytes]
 	pWork.outBytes -= 0x800
@@ -237,14 +239,18 @@ func flushBuf(pWork *tCmpStruct) {
 	if pWork.outBits != 0 {
 		pWork.outBuff[pWork.outBytes] = saveCh2
 	}
+	return nil
 }
 
-func outputBits(pWork *tCmpStruct, nBits uint16, bitBuff uint) {
+func outputBits(pWork *tCmpStruct, nBits uint16, bitBuff uint) error {
 	var outBits uint
 
 	// If more than 8 bits to output, do recursion
 	if nBits > 8 {
-		outputBits(pWork, 8, bitBuff)
+		err := outputBits(pWork, 8, bitBuff)
+		if err != nil {
+			return err
+		}
 		bitBuff >>= 8
 		nBits -= 8
 	}
@@ -270,8 +276,12 @@ func outputBits(pWork *tCmpStruct, nBits uint16, bitBuff uint) {
 
 	// If there is enough compressed bytes, flush them
 	if pWork.outBytes >= 0x800 {
-		flushBuf(pWork)
+		err := flushBuf(pWork)
+		if err != nil {
+			return err
+		}
 	}
+	return nil
 }
 
 // This function searches for a repetition
@@ -529,14 +539,15 @@ func findRep(pWork *tCmpStruct, workBuffOffset uint) uint {
 	}
 }
 
-func writeCmpData(pWork *tCmpStruct) {
+func writeCmpData(pWork *tCmpStruct) error {
 	var inputDataEndIndex uint // Pointer to the end of the input data
 	var workBuffOffset = pWork.dsizeBytes + 0x204
 	var inputDataEnded = false // If 1, then all data from the input stream have been already loaded
 	var saveRepLength uint     // Saved length of current repetition
-	var saveDistance = uint(0) // Saved distance of current repetition
+	var saveDistance uint      // Saved distance of current repetition
 	var repLength uint         // Length of the found repetition
 	var phase = uint(0)        //
+	var err error
 
 	// Store the compression type and dictionary size
 	pWork.outBuff[0] = uint8(pWork.cType)
@@ -595,16 +606,11 @@ func writeCmpData(pWork *tCmpStruct) {
 			if pWork.dsizeBytes != 0x1000 {
 				phase++
 			}
-			break
-
 		case 1:
 			sortBuffer(pWork, workBuffOffset-pWork.dsizeBytes+0x204, inputDataEndIndex+1)
 			phase++
-			break
-
 		default:
 			sortBuffer(pWork, workBuffOffset-pWork.dsizeBytes, inputDataEndIndex+1)
-			break
 		}
 
 		// Perform the compression of the current block
@@ -651,7 +657,10 @@ func writeCmpData(pWork *tCmpStruct) {
 					// and the previous distance is less than 0x80 bytes, use the previous repetition
 					if repLength > saveRepLength+1 || saveDistance > 0x80 {
 						// Flush one byte, so that input_data will point to the secondary repetition
-						outputBits(pWork, uint16(pWork.nChBits[pWork.workBuff[workBuffOffset]]), uint(pWork.nChCodes[pWork.workBuff[workBuffOffset]]))
+						err := outputBits(pWork, uint16(pWork.nChBits[pWork.workBuff[workBuffOffset]]), uint(pWork.nChCodes[pWork.workBuff[workBuffOffset]]))
+						if err != nil {
+							return err
+						}
 						workBuffOffset++
 						continue
 					}
@@ -663,14 +672,29 @@ func writeCmpData(pWork *tCmpStruct) {
 
 			__FlushRepetition:
 
-				outputBits(pWork, uint16(pWork.nChBits[repLength+0xFE]), uint(pWork.nChCodes[repLength+0xFE]))
+				err := outputBits(pWork, uint16(pWork.nChBits[repLength+0xFE]), uint(pWork.nChCodes[repLength+0xFE]))
+				if err != nil {
+					return err
+				}
 				if repLength == 2 {
-					outputBits(pWork, uint16(pWork.distBits[pWork.distance>>2]), uint(pWork.distCodes[pWork.distance>>2]))
-					outputBits(pWork, 2, pWork.distance&3)
+					err = outputBits(pWork, uint16(pWork.distBits[pWork.distance>>2]), uint(pWork.distCodes[pWork.distance>>2]))
+					if err != nil {
+						return err
+					}
+					err = outputBits(pWork, 2, pWork.distance&3)
+					if err != nil {
+						return err
+					}
 				} else {
-					outputBits(pWork, uint16(pWork.distBits[pWork.distance>>pWork.dsizeBits]),
+					err = outputBits(pWork, uint16(pWork.distBits[pWork.distance>>pWork.dsizeBits]),
 						uint(pWork.distCodes[pWork.distance>>pWork.dsizeBits]))
-					outputBits(pWork, uint16(pWork.dsizeBits), pWork.dsizeMask&pWork.distance)
+					if err != nil {
+						return err
+					}
+					err = outputBits(pWork, uint16(pWork.dsizeBits), pWork.dsizeMask&pWork.distance)
+					if err != nil {
+						return err
+					}
 				}
 
 				// Move the begin of the input data by the length of the repetition
@@ -680,7 +704,10 @@ func writeCmpData(pWork *tCmpStruct) {
 
 			// If there was no previous repetition for the current position in the input data,
 			// just output the 9-bit literal for the one character
-			outputBits(pWork, uint16(pWork.nChBits[pWork.workBuff[workBuffOffset]]), uint(pWork.nChCodes[pWork.workBuff[workBuffOffset]]))
+			err = outputBits(pWork, uint16(pWork.nChBits[pWork.workBuff[workBuffOffset]]), uint(pWork.nChCodes[pWork.workBuff[workBuffOffset]]))
+			if err != nil {
+				return err
+			}
 			workBuffOffset++
 		_00402252:
 		}
@@ -694,12 +721,18 @@ func writeCmpData(pWork *tCmpStruct) {
 __Exit:
 
 	// Write the termination literal
-	outputBits(pWork, uint16(pWork.nChBits[0x305]), uint(pWork.nChCodes[0x305]))
+	err = outputBits(pWork, uint16(pWork.nChBits[0x305]), uint(pWork.nChCodes[0x305]))
+	if err != nil {
+		return err
+	}
 	if pWork.outBits != 0 {
 		pWork.outBytes++
 	}
-	pWork.writeBuf.Write(pWork.outBuff[:pWork.outBytes])
-	return
+	_, err = pWork.writeBuf.Write(pWork.outBuff[:pWork.outBytes])
+	if err != nil {
+		return err
+	}
+	return nil
 }
 
 var (
@@ -715,7 +748,7 @@ func implode(r io.Reader, w io.Writer, workBuf *tCmpStruct, implodeType uint, dS
 	var nCount uint
 	var i uint
 	var nCount2 int
-
+	var err error
 	// Fill the work buffer information
 	// Note: The caller must zero the "workBuf" before passing it to implode
 	pWork.readBuf = r
@@ -734,14 +767,11 @@ func implode(r io.Reader, w io.Writer, workBuf *tCmpStruct, implodeType uint, dS
 		// No break here !!!
 		pWork.dsizeBits++
 		pWork.dsizeMask |= 0x10
-		break
 	case DictionarySize2048: // 0x800 bytes
 		pWork.dsizeBits++
 		pWork.dsizeMask |= 0x10
 		// No break here !!!
-		break
 	case DictionarySize1024: // 0x400
-		break
 
 	default:
 		return ErrInvalidDictSize
@@ -756,15 +786,11 @@ func implode(r io.Reader, w io.Writer, workBuf *tCmpStruct, implodeType uint, dS
 			pWork.nChCodes[nCount] = uint16(nChCode)
 			nChCode = (nChCode & 0x0000FFFF) + 2
 		}
-		break
-
 	case ASCII: // We will compress data with ASCII compression type
 		for nCount = 0; nCount < 0x100; nCount++ {
 			pWork.nChBits[nCount] = uint8(chBitsAscs[nCount] + 1)
 			pWork.nChCodes[nCount] = uint16(chCodeAscs[nCount] * 2)
 		}
-		break
-
 	default:
 		return ErrInvalidMode
 	}
@@ -782,7 +808,10 @@ func implode(r io.Reader, w io.Writer, workBuf *tCmpStruct, implodeType uint, dS
 	// Copy the distance codes and distance bits and perform the compression
 	copy(pWork.distCodes, distCodes)
 	copy(pWork.distBits, distBits)
-	writeCmpData(pWork)
+	err = writeCmpData(pWork)
+	if err != nil {
+		return err
+	}
 	return nil
 }
 
@@ -794,7 +823,6 @@ type Writer struct {
 	implodeType uint
 	dictSize    uint
 	data        []uint8
-	err         error
 }
 
 // NewWriter creates a new Writer.
